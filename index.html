@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>情報収集ワークシート</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, 'Hiragino Sans', sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ─── ヘッダー ─── */
+  .header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header-actions { display: flex; gap: 10px; }
+  .header-btn {
+    background: rgba(255,255,255,.2);
+    border: 1px solid rgba(255,255,255,.4);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .header-btn:active { background: rgba(255,255,255,.35); }
+  .header-btn.danger { background: rgba(239,68,68,.7); border-color: rgba(239,68,68,.9); }
+
+  /* ─── メインコンテンツ ─── */
+  .container { max-width: 1024px; margin: 0 auto; padding: 16px; }
+
+  /* ─── 撮影セクション ─── */
+  .capture-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    text-align: center;
+  }
+  .capture-btn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    border: none;
+    padding: 16px 40px;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .1s;
+  }
+  .capture-btn:active { transform: scale(.96); }
+  .capture-btn:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  /* ─── プログレス ─── */
+  .progress-bar {
+    display: none;
+    margin-top: 16px;
+  }
+  .progress-bar.active { display: block; }
+  .progress-track {
+    background: #e2e8f0;
+    border-radius: 8px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    background: #2563eb;
+    height: 100%;
+    width: 0%;
+    border-radius: 8px;
+    transition: width .3s;
+  }
+  .progress-text {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 6px;
+  }
+
+  /* ─── 患者カード ─── */
+  .patient-cards { display: flex; flex-direction: column; gap: 12px; }
+
+  .patient-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+  .card-header {
+    background: #f1f5f9;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .card-header h3 { font-size: 16px; font-weight: 700; }
+  .card-time { font-size: 12px; color: #64748b; }
+  .card-body { padding: 14px 16px; }
+  .card-row {
+    display: flex;
+    padding: 6px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+  }
+  .card-row:last-child { border-bottom: none; }
+  .card-label {
+    font-weight: 600;
+    color: #475569;
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+  .card-value {
+    color: #1e293b;
+    flex: 1;
+    word-break: break-all;
+  }
+  .card-actions {
+    padding: 8px 16px 14px;
+    display: flex;
+    gap: 8px;
+  }
+  .card-action-btn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #475569;
+    cursor: pointer;
+  }
+  .card-action-btn:active { background: #e2e8f0; }
+  .card-action-btn.delete { color: #ef4444; }
+
+  /* ─── RAWテキストの表示/編集 ─── */
+  .raw-section {
+    margin-top: 8px;
+    display: none;
+  }
+  .raw-section.open { display: block; }
+  .raw-textarea {
+    width: 100%;
+    min-height: 120px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    color: #334155;
+    background: #f8fafc;
+  }
+
+  /* ─── 空状態 ─── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #94a3b8;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  /* ─── 注意バナー ─── */
+  .notice {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #92400e;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* ─── 非表示のinput ─── */
+  #cameraInput { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>情報収集シート</h1>
+  <div class="header-actions">
+    <button class="header-btn" onclick="exportText()">テキスト出力</button>
+    <button class="header-btn danger" onclick="clearAll()">全消去</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="notice">
+    このアプリはデータを一切保存・送信しません。ページを閉じると全て消去されます。OCR処理は端末内で完結します。
+  </div>
+
+  <div class="capture-section">
+    <button class="capture-btn" id="captureBtn" onclick="startCapture()">
+      <span>📷</span> カルテを撮影して読み取る
+    </button>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">準備中...</div>
+    </div>
+  </div>
+
+  <div class="patient-cards" id="patientCards">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">📋</div>
+      <p>カルテを撮影すると、ここにワークシートが表示されます</p>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="cameraInput" accept="image/*" capture="environment">
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+// ─── 状態管理（メモリのみ・永続化なし）───
+let patients = [];
+let workerReady = false;
+let worker = null;
+
+// ─── Tesseract Worker 初期化 ───
+async function initWorker() {
+  if (worker) return;
+  worker = await Tesseract.createWorker('jpn', 1, {
+    logger: m => {
+      if (m.status === 'recognizing text') {
+        updateProgress(Math.round(m.progress * 100), 'テキスト認識中...');
+      }
+    }
+  });
+  workerReady = true;
+}
+
+// ─── 撮影開始 ───
+function startCapture() {
+  document.getElementById('cameraInput').click();
+}
+
+// ─── ファイル選択時 ───
+document.getElementById('cameraInput').addEventListener('change', async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const btn = document.getElementById('captureBtn');
+  btn.disabled = true;
+  btn.textContent = '処理中...';
+  showProgress(true);
+  updateProgress(0, 'OCRエンジン起動中...');
+
+  try {
+    // 画像を圧縮してOCR精度と速度を最適化
+    const imageData = await prepareImage(file);
+
+    updateProgress(10, 'OCRエンジン準備中...');
+    await initWorker();
+
+    updateProgress(20, 'テキスト認識中...');
+    const { data } = await worker.recognize(imageData);
+
+    updateProgress(100, '完了');
+
+    const rawText = data.text.trim();
+    if (rawText) {
+      const parsed = parsePatientInfo(rawText);
+      parsed.rawText = rawText;
+      parsed.time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      parsed.id = Date.now();
+      patients.push(parsed);
+      renderCards();
+    } else {
+      alert('テキストを読み取れませんでした。\n画面をもう少し大きく撮影してみてください。');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('OCR処理でエラーが発生しました:\n' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>📷</span> カルテを撮影して読み取る';
+    showProgress(false);
+    // inputリセット（同じ画像を再選択可能に）
+    e.target.value = '';
+  }
+});
+
+// ─── 画像前処理（リサイズ・コントラスト強調）───
+function prepareImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        // 長辺を2000pxに制限（精度と速度のバランス）
+        const maxSize = 2000;
+        let w = img.width, h = img.height;
+        if (w > maxSize || h > maxSize) {
+          const ratio = Math.min(maxSize / w, maxSize / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        canvas.width = w;
+        canvas.height = h;
+
+        const ctx = canvas.getContext('2d');
+        // グレースケール化とコントラスト強調でOCR精度向上
+        ctx.drawImage(img, 0, 0, w, h);
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          // グレースケール
+          const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+          // コントラスト強調
+          const contrast = 1.5;
+          const v = Math.min(255, Math.max(0, (gray - 128) * contrast + 128));
+          d[i] = d[i+1] = d[i+2] = v;
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        canvas.toBlob(blob => resolve(blob), 'image/png');
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ─── テキスト解析（キーワードベースの簡易パーサー）───
+function parsePatientInfo(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  const info = {
+    name: '',
+    age: '',
+    sex: '',
+    history: '',
+    adl: '',
+    treatment: '',
+    notes: ''
+  };
+
+  const fullText = lines.join(' ');
+
+  // 氏名抽出
+  const namePatterns = [
+    /(?:氏名|患者名|名前)[：:\s]*([^\s\d]{2,10})/,
+    /^([^\s\d]{2,6})\s+(?:様|殿)/m
+  ];
+  for (const p of namePatterns) {
+    const m = fullText.match(p);
+    if (m) { info.name = m[1]; break; }
+  }
+
+  // 年齢
+  const ageMatch = fullText.match(/(\d{1,3})\s*(?:歳|才)/);
+  if (ageMatch) info.age = ageMatch[1] + '歳';
+
+  // 性別
+  const sexMatch = fullText.match(/(?:性別[：:\s]*)?(男性?|女性?|[MF])/);
+  if (sexMatch) info.sex = sexMatch[1];
+
+  // 既往歴
+  const historyPatterns = [
+    /(?:既往歴|既往|PMH)[：:\s]*([^\n]{3,})/i,
+    /(?:既往歴|既往)[\s\S]*?(?=(?:現病歴|ADL|治療|アレルギー|$))/i
+  ];
+  for (const p of historyPatterns) {
+    const m = fullText.match(p);
+    if (m) { info.history = m[1] || m[0]; break; }
+  }
+
+  // ADL
+  const adlMatch = fullText.match(/(?:ADL|日常生活動作|自立度)[：:\s]*([^\n]{3,})/i);
+  if (adlMatch) info.adl = adlMatch[1];
+
+  // 治療内容（点滴含む）
+  const treatPatterns = [
+    /(?:治療|点滴|DIV|輸液|処方|内服)[：:\s]*([^\n]{3,})/i,
+  ];
+  for (const p of treatPatterns) {
+    const m = fullText.match(p);
+    if (m) { info.treatment = m[1]; break; }
+  }
+
+  // 未分類テキスト
+  const usedValues = [info.name, info.age, info.sex, info.history, info.adl, info.treatment].filter(v => v);
+  if (usedValues.length === 0) {
+    info.notes = lines.slice(0, 10).join('\n');
+  }
+
+  return info;
+}
+
+// ─── カード描画 ───
+function renderCards() {
+  const container = document.getElementById('patientCards');
+  const empty = document.getElementById('emptyState');
+
+  if (patients.length === 0) {
+    container.innerHTML = '';
+    container.appendChild(createEmptyState());
+    return;
+  }
+
+  container.innerHTML = patients.map((p, i) => `
+    <div class="patient-card" data-id="${p.id}">
+      <div class="card-header">
+        <h3>${p.name || '患者 ' + (i + 1)}</h3>
+        <span class="card-time">${p.time}</span>
+      </div>
+      <div class="card-body">
+        ${cardRow('氏名', p.name)}
+        ${cardRow('年齢', p.age)}
+        ${cardRow('性別', p.sex)}
+        ${cardRow('既往歴', p.history)}
+        ${cardRow('ADL', p.adl)}
+        ${cardRow('治療', p.treatment)}
+        ${p.notes ? cardRow('メモ', p.notes) : ''}
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn" onclick="toggleRaw(${p.id})">読取テキスト</button>
+        <button class="card-action-btn" onclick="editCard(${p.id})">編集</button>
+        <button class="card-action-btn delete" onclick="deleteCard(${p.id})">削除</button>
+      </div>
+      <div class="raw-section" id="raw-${p.id}">
+        <div style="padding: 0 16px 14px;">
+          <textarea class="raw-textarea" id="rawText-${p.id}" readonly>${p.rawText}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function cardRow(label, value) {
+  if (!value) return `<div class="card-row"><span class="card-label">${label}</span><span class="card-value" style="color:#94a3b8">---</span></div>`;
+  return `<div class="card-row"><span class="card-label">${label}</span><span class="card-value">${escapeHtml(value)}</span></div>`;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function createEmptyState() {
+  const div = document.createElement('div');
+  div.className = 'empty-state';
+  div.id = 'emptyState';
+  div.innerHTML = '<div class="icon">📋</div><p>カルテを撮影すると、ここにワークシートが表示されます</p>';
+  return div;
+}
+
+// ─── カード操作 ───
+function toggleRaw(id) {
+  const el = document.getElementById('raw-' + id);
+  el.classList.toggle('open');
+}
+
+function editCard(id) {
+  const p = patients.find(x => x.id === id);
+  if (!p) return;
+
+  const fields = [
+    { key: 'name', label: '氏名' },
+    { key: 'age', label: '年齢' },
+    { key: 'sex', label: '性別' },
+    { key: 'history', label: '既往歴' },
+    { key: 'adl', label: 'ADL' },
+    { key: 'treatment', label: '治療内容' },
+  ];
+
+  for (const f of fields) {
+    const val = prompt(f.label + ':', p[f.key] || '');
+    if (val !== null) p[f.key] = val;
+  }
+  renderCards();
+}
+
+function deleteCard(id) {
+  if (!confirm('この患者情報を削除しますか？')) return;
+  patients = patients.filter(x => x.id !== id);
+  renderCards();
+}
+
+// ─── 全消去 ───
+function clearAll() {
+  if (!confirm('全てのデータを消去しますか？\nこの操作は取り消せません。')) return;
+  patients = [];
+  renderCards();
+}
+
+// ─── テキスト出力（クリップボードにコピー）───
+function exportText() {
+  if (patients.length === 0) {
+    alert('データがありません');
+    return;
+  }
+  const text = patients.map((p, i) => {
+    return [
+      `=== 患者${i + 1}: ${p.name || '不明'} ===`,
+      `氏名: ${p.name || '---'}`,
+      `年齢: ${p.age || '---'}`,
+      `性別: ${p.sex || '---'}`,
+      `既往歴: ${p.history || '---'}`,
+      `ADL: ${p.adl || '---'}`,
+      `治療: ${p.treatment || '---'}`,
+      `取得時刻: ${p.time}`,
+    ].join('\n');
+  }).join('\n\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    alert('クリップボードにコピーしました');
+  }).catch(() => {
+    // fallback: テキストエリアで手動コピー
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('クリップボードにコピーしました');
+  });
+}
+
+// ─── プログレスバー ───
+function showProgress(show) {
+  document.getElementById('progressBar').className = 'progress-bar' + (show ? ' active' : '');
+}
+
+function updateProgress(pct, text) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text;
+}
+
+// ─── ページ離脱時の警告 ───
+window.addEventListener('beforeunload', function(e) {
+  if (patients.length > 0) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>
